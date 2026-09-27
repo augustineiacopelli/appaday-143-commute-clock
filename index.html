@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Commute Clock | AppADay 143</title>
+<meta name="description" content="See what each commute day costs in gas, and what a day or two at home keeps in your pocket every year.">
+<meta name="theme-color" content="#0e1014">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e1014; --panel:#161920; --panel2:#1d212a; --line:#2a2f3a;
+  --text:#eef0f4; --muted:#a3aabb; --dim:#878ea0;
+  --accent:#f5b82e; --accent-ink:#1a1405; --keep:#43d69a;
+  --radius:16px;
+  --sans:'Sora',system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.45}
+a{color:var(--accent)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+.topbar,.footbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:var(--panel)}
+.topbar{border-bottom:1px solid var(--line)}
+.footbar{border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;min-width:0}
+.brand .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.num{font-family:var(--mono);font-size:13px;font-weight:700;background:var(--accent);color:var(--accent-ink);padding:4px 8px;border-radius:6px}
+.back{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--text);white-space:nowrap}
+.back:hover{border-color:var(--accent)}
+.road{height:5px;background:repeating-linear-gradient(90deg,var(--accent) 0 28px,transparent 28px 52px);opacity:.5}
+
+main{flex:1;width:100%;max-width:860px;margin:0 auto;padding:18px 12px 28px;display:grid;gap:16px;align-content:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0}
+h1{font-size:clamp(28px,7vw,40px);line-height:1.08;margin:0 0 6px;letter-spacing:-.02em}
+.lede{color:var(--muted);margin:0 0 18px;font-size:15px}
+
+.field{margin-bottom:14px}
+.lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.inwrap{display:flex;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.inwrap:focus-within{border-color:var(--accent)}
+.inwrap .unit{color:var(--dim);font-family:var(--mono);font-size:14px;white-space:nowrap}
+.inwrap input{flex:1;min-width:0;min-height:48px;background:transparent;border:0;color:var(--text);font:600 18px var(--mono);outline:none;padding:0 6px}
+.inwrap input::-webkit-outer-spin-button,.inwrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.inwrap input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.hint{font-size:13px;color:var(--dim);margin:6px 0 0}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pair .field{min-width:0}
+
+.seg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.seg button{min-height:44px;min-width:0;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:700 16px var(--mono);cursor:pointer;padding:0}
+.seg button:hover{border-color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seg.two{grid-template-columns:1fr 1fr}
+.seg.txt button{font:600 15px var(--sans);padding:0 8px}
+.inwrap.locked{border-style:dashed}
+.inwrap input[readonly]{color:var(--accent)}
+.brand h1.name{font-size:16px;margin:0;font-weight:700}
+.tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 12px;background:rgba(14,16,20,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.tabs button{min-height:46px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--muted);font:700 15px var(--sans);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.tabs button:hover{color:var(--text);background:var(--panel)}
+.tabs button[aria-selected="true"]{background:var(--panel2);color:var(--accent);border-color:var(--line);box-shadow:inset 0 -3px 0 var(--accent)}
+.badge{font:700 11px var(--mono);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:2px 7px}
+.badge:empty{display:none}
+.tabpanel[hidden]{display:none}
+.hero.inclock{margin:0 0 18px}
+.worth{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-bottom:12px}
+.worth span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.worth b{font:700 20px var(--mono);color:var(--accent)}
+.worth small{flex-basis:100%;font:500 12px var(--mono);color:var(--dim)}
+.ptitle{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
+.logform{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.logform .field{margin-bottom:4px;min-width:0}
+.inwrap input[type=date]{color-scheme:dark;font-size:15px}
+.addbtn{grid-column:1 / -1;min-height:48px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:16px;cursor:pointer}
+.addbtn:hover{filter:brightness(1.08)}
+.msg{font-size:13px;color:var(--muted);margin:8px 0 0;min-height:18px}
+.msg.err{color:#ff8a7a}
+.lstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
+.usebtn{margin-top:8px;min-height:44px;width:100%;border-radius:10px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;font-size:14px;cursor:pointer}
+.loglist{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:360px;overflow-y:auto}
+.logrow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px;min-width:0}
+.logrow .info{flex:1;min-width:0}
+.logrow .d{font-weight:700;font-size:14px}
+.logrow .m{font:500 12px var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.logrow .amt{font:700 16px var(--mono);white-space:nowrap}
+.delbtn{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font:700 20px var(--mono);cursor:pointer}
+.delbtn:hover{color:#ff8a7a;border-color:#ff8a7a}
+.empty{font-size:14px;color:var(--dim);text-align:center;padding:14px;border:1px dashed var(--line);border-radius:12px}
+
+.hero{margin:18px 0 14px;padding:16px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.hero .lbl{margin-bottom:2px}
+.hero-top{display:flex;align-items:baseline;gap:10px}
+.bigval{font:700 clamp(48px,14vw,68px)/1 var(--mono);color:var(--accent)}
+.bigunit{color:var(--muted);font-size:15px}
+.ticks{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--dim)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:8px 0 0;cursor:pointer;display:block}
+input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--accent) var(--fill,100%),var(--line) var(--fill,100%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;border-radius:50%;background:var(--text);border:5px solid var(--accent);margin-top:-10px}
+input[type=range]::-moz-range-track{height:10px;border-radius:5px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:10px;border-radius:5px;background:var(--accent)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--text);border:5px solid var(--accent)}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:8px}
+
+.reset{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:600;font-size:15px;cursor:pointer}
+.reset:hover{color:var(--text);border-color:var(--muted)}
+
+.headline{font-size:clamp(26px,6.5vw,38px);font-weight:800;line-height:1.12;margin:0 0 6px;letter-spacing:-.015em}
+.headline em{font-style:normal;color:var(--keep)}
+.headline strong{color:var(--accent)}
+.sub{color:var(--muted);margin:0 0 18px;font-size:15px}
+.results-body{min-width:0}
+.is-empty .results-body{display:none}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.card h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card .v{font:700 clamp(21px,5.8vw,26px)/1.2 var(--mono);margin:6px 0 4px;overflow-wrap:anywhere}
+.card .b{font:500 12px var(--mono);color:var(--dim);overflow-wrap:anywhere}
+
+.sect{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.chartwrap{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 8px 6px;margin-bottom:6px}
+#chart{display:block;width:100%;height:auto}
+#chart .hit{fill:transparent;cursor:pointer}
+#chart g[data-bar]:focus{outline:none}
+#chart g[data-bar]:focus-visible .hit{stroke:var(--accent);stroke-width:2}
+#chart .brect{fill:#343a47;transition:fill .15s}
+#chart g[data-bar]:hover .brect{fill:#434a5a}
+#chart .base .brect{fill:rgba(238,240,244,.05);stroke:var(--muted);stroke-width:2}
+#chart .sel .brect{fill:var(--accent)}
+#chart .sel.base .brect{stroke:var(--text)}
+#chart .vl{font:700 15px var(--mono);fill:var(--muted);text-anchor:middle}
+#chart .sel .vl{fill:var(--accent)}
+#chart .dl{font:600 15px var(--sans);fill:var(--dim);text-anchor:middle}
+#chart .sel .dl{fill:var(--text)}
+#chart .axis{stroke:var(--line);stroke-width:2}
+.chartcap{font-size:13px;color:var(--dim);text-align:center;margin:0 0 18px}
+
+.strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.strip div{text-align:center;padding:12px 6px;border-radius:12px;background:rgba(67,214,154,.07);border:1px solid rgba(67,214,154,.25);min-width:0}
+.strip b{display:block;font:700 clamp(17px,4.6vw,22px) var(--mono);color:var(--keep);overflow-wrap:anywhere}
+.strip span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.note{font-size:13px;color:var(--dim);margin:8px 0 0}
+
+details{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+summary{min-height:50px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;cursor:pointer;font-weight:700;list-style:none;border-radius:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';font:700 22px var(--mono);color:var(--accent)}
+details[open] summary::after{content:'\2212'}
+.tbody{padding:2px 14px 14px}
+.tout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:4px}
+.tcell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.tcell span{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tcell b{display:block;font:700 18px var(--mono);margin-top:4px;overflow-wrap:anywhere}
+.tcell.keep b{color:var(--keep)}
+.tcell.wide{grid-column:1 / -1}
+.hidden{display:none}
+
+@media (min-width:860px){
+  main{padding:28px 24px 40px}
+  .tabs{padding:10px max(24px,calc((100vw - 812px) / 2))}
+  .panel{padding:22px}
+  .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .card .v{font-size:clamp(18px,1.9vw,24px)}
+  .tout{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="num">#143</span><h1 class="name">Commute Clock</h1></div>
+  <a class="back" href="https://augustineiacopelli.github.io/appaday/">All apps</a>
+</header>
+<div class="road" aria-hidden="true"></div>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button type="button" role="tab" id="t-clock" data-tab="clock" aria-controls="tab-clock" aria-selected="true">Clock</button>
+  <button type="button" role="tab" id="t-setup" data-tab="setup" aria-controls="tab-setup" aria-selected="false" tabindex="-1">Setup</button>
+  <button type="button" role="tab" id="t-log" data-tab="log" aria-controls="tab-log" aria-selected="false" tabindex="-1">Fillups<span class="badge" id="logBadge"></span></button>
+</nav>
+
+<main>
+  <section class="panel tabpanel" id="tab-clock" role="tabpanel" aria-labelledby="t-clock">
+  <div id="results">
+    <h2 class="headline" id="headline" aria-live="polite"></h2>
+    <p class="sub" id="sub"></p>
+    <div class="hero inclock">
+      <label class="lbl" for="days">Days you actually commute</label>
+      <div class="hero-top"><span class="bigval" id="daysVal">5</span><span class="bigunit" id="daysUnit">days per week</span></div>
+      <input id="days" data-key="days" type="range" min="0" max="5" step="1" value="5">
+      <div class="ticks"><span>0</span><span id="tickMax">5</span></div>
+    </div>
+
+    <div class="results-body">
+      <div class="cards">
+        <div class="card"><h3>Per day</h3><div class="v" id="cDaily"></div><div class="b" id="bDaily"></div></div>
+        <div class="card"><h3>Per week</h3><div class="v" id="cWeekly"></div><div class="b" id="bWeekly"></div></div>
+        <div class="card"><h3>Per month</h3><div class="v" id="cMonthly"></div><div class="b" id="bMonthly"></div></div>
+        <div class="card"><h3>Per year</h3><div class="v" id="cYearly"></div><div class="b" id="bYearly"></div></div>
+      </div>
+
+      <p class="sect">Yearly gas by commute days</p>
+      <div class="chartwrap">
+        <svg id="chart" viewBox="0 0 480 260" role="group" aria-label="Yearly gas cost for each number of commute days. Tap a bar to select it."></svg>
+      </div>
+      <p class="chartcap">Commute days per week. Tap a bar to try it.</p>
+
+      <p class="sect">What you keep over time</p>
+      <div class="strip">
+        <div><b id="s1"></b><span>1 year</span></div>
+        <div><b id="s3"></b><span>3 years</span></div>
+        <div><b id="s5"></b><span>5 years</span></div>
+      </div>
+      <p class="note">Assumes today&#39;s gas price holds flat. Real prices will drift.</p>
+
+      <details id="timeBox">
+        <summary>Add the time cost</summary>
+        <div class="tbody">
+          <div class="field">
+            <label class="lbl" for="minutes">One way minutes</label>
+            <div class="inwrap"><input id="minutes" data-key="minutes" type="number" inputmode="numeric" min="0" step="1"><span class="unit">min</span></div>
+          </div>
+          <div class="field">
+            <span class="lbl" id="payLbl">Value your time from</span>
+            <div class="seg two txt" role="group" aria-labelledby="payLbl">
+              <button type="button" data-pay="hourly">Hourly rate</button>
+              <button type="button" data-pay="salary">Annual salary</button>
+            </div>
+          </div>
+          <div class="field" id="payHourly">
+            <label class="lbl" for="hourly">Hourly rate</label>
+            <div class="inwrap"><span class="unit">$</span><input id="hourly" data-key="hourly" type="number" inputmode="decimal" min="0" step="0.01" placeholder="optional"><span class="unit">/hr</span></div>
+          </div>
+          <div class="pair" id="paySalary">
+            <div class="field">
+              <label class="lbl" for="salary">Annual salary</label>
+              <div class="inwrap"><span class="unit">$</span><input id="salary" data-key="salary" type="number" inputmode="decimal" min="0" step="100" placeholder="optional"><span class="unit">/yr</span></div>
+            </div>
+            <div class="field">
+              <label class="lbl" for="hpw">Hours per week</label>
+              <div class="inwrap"><input id="hpw" data-key="hpw" type="number" inputmode="decimal" min="0" max="168" step="0.5"><span class="unit">hr</span></div>
+            </div>
+          </div>
+          <div class="worth" id="worth"><span>Your hour is worth</span><b id="worthVal"></b><small id="worthHow"></small></div>
+          <div class="tout">
+            <div class="tcell"><span id="tBaseLbl">At 5 days</span><b id="tBase"></b></div>
+            <div class="tcell"><span id="tSelLbl">At 5 days</span><b id="tSel"></b></div>
+            <div class="tcell keep"><span>Hours reclaimed</span><b id="tKeep"></b></div>
+            <div class="tcell keep" id="tValCell"><span>Time value</span><b id="tVal"></b></div>
+            <div class="tcell keep wide" id="tComboCell"><span>Gas plus time, per year</span><b id="tCombo"></b></div>
+          </div>
+          <p class="note" id="tHint">Add an hourly rate or salary to put a price on the time.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+  </section>
+
+  <section class="panel tabpanel" id="tab-setup" role="tabpanel" aria-labelledby="t-setup" hidden>
+    <h2 class="ptitle">Your commute</h2>
+    <p class="lede">Set these once. The Clock tab does the rest.</p>
+
+    <div class="pair">
+      <div class="field">
+        <label class="lbl" for="miles">One way miles</label>
+        <div class="inwrap"><input id="miles" data-key="miles" type="number" inputmode="decimal" min="0" step="0.1"><span class="unit">mi</span></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="mpg">MPG</label>
+        <div class="inwrap"><input id="mpg" data-key="mpg" type="number" inputmode="decimal" min="0" step="0.1"><span class="unit">mpg</span></div>
+      </div>
+    </div>
+    <p class="hint" style="margin:-6px 0 14px">Use your dashboard reading, not the window sticker. Commute traffic cuts economy 15 to 30 percent.</p>
+
+    <div class="pair">
+      <div class="field">
+        <label class="lbl" for="price">Gas price</label>
+        <div class="inwrap" id="priceWrap"><span class="unit">$</span><input id="price" data-key="price" type="number" inputmode="decimal" min="0" step="0.01"><span class="unit">/gal</span></div>
+        <p class="hint" id="priceHint">Kansas average, September 2026</p>
+      </div>
+      <div class="field">
+        <label class="lbl" for="weeks">Work weeks</label>
+        <div class="inwrap"><input id="weeks" data-key="weeks" type="number" inputmode="numeric" min="0" max="52" step="1"><span class="unit">/yr</span></div>
+        <p class="hint">Not 52. Holidays, vacation, and sick days come off the top.</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl" id="srcLbl">Price source</span>
+      <div class="seg two txt" role="group" aria-labelledby="srcLbl">
+        <button type="button" data-src="manual">Typed price</button>
+        <button type="button" data-src="log">My fillups</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="lbl" id="lunchLbl">Lunch on commute days</span>
+      <div class="seg two txt" role="group" aria-labelledby="lunchLbl">
+        <button type="button" data-lunch="site">Eat on site</button>
+        <button type="button" data-lunch="home">Drive home</button>
+      </div>
+      <p class="hint" id="lunchHint"></p>
+    </div>
+
+    <div class="field">
+      <span class="lbl" id="baseLbl">Days your job expects</span>
+      <div class="seg" role="group" aria-labelledby="baseLbl" id="seg"></div>
+    </div>
+
+    <button type="button" class="reset" id="reset">Reset settings</button>
+    <p class="hint" style="text-align:center">Reset keeps your fillup log.</p>
+  </section>
+
+  <section class="panel tabpanel" id="tab-log" role="tabpanel" aria-labelledby="t-log" hidden>
+    <h2 class="ptitle" id="logTitle">Fillup log</h2>
+    <p class="lede">Record each tank so the clock runs on what you actually pay.</p>
+    <form id="logForm" class="logform" novalidate>
+      <div class="field">
+        <label class="lbl" for="fDate">Date</label>
+        <div class="inwrap"><input id="fDate" type="date"></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="fGal">Gallons</label>
+        <div class="inwrap"><input id="fGal" type="number" inputmode="decimal" min="0" step="0.001"><span class="unit">gal</span></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="fCost">Total paid</label>
+        <div class="inwrap"><span class="unit">$</span><input id="fCost" type="number" inputmode="decimal" min="0" step="0.01"></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="fOdo">Odometer</label>
+        <div class="inwrap"><input id="fOdo" type="number" inputmode="numeric" min="0" step="1" placeholder="optional"><span class="unit">mi</span></div>
+      </div>
+      <button type="submit" class="addbtn">Add fillup</button>
+    </form>
+    <p class="msg" id="logMsg" role="status"></p>
+
+    <div class="lstats" id="lstats">
+      <div class="tcell"><span>Avg per gallon</span><b id="lPrice"></b></div>
+      <div class="tcell"><span>Avg per fillup</span><b id="lFill"></b></div>
+      <div class="tcell"><span>Fillups</span><b id="lCount"></b></div>
+      <div class="tcell"><span>Total spent</span><b id="lTotal"></b></div>
+      <div class="tcell wide" id="lMpgCell"><span>Logged MPG</span><b id="lMpg"></b>
+        <button type="button" class="usebtn" id="useMpg">Use logged MPG</button></div>
+    </div>
+    <p class="hint" id="lNote"></p>
+    <ul class="loglist" id="logList" aria-label="Fillups, newest first"></ul>
+  </section>
+</main>
+
+<footer class="footbar">
+  <span>AppADay #143 &middot; Commute Clock</span>
+  <a class="back" href="https://augustineiacopelli.github.io/appaday/">Portfolio</a>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  var STORE_KEY = 'appaday-143-commute-clock';
+  var DEFAULTS = { miles:25, mpg:25, price:3.94, weeks:48, baseline:5, days:5, minutes:30, hourly:null, payMode:'hourly', salary:null, hpw:40,
+                   lunch:'site', priceMode:'manual', fillups:[], tab:'clock' };
+  var TABS = ['clock','setup','log'];
+  var RECENT = 5;
+  var MAX_FILLUPS = 500;
+  var NUM_KEYS = ['miles','mpg','price','weeks','minutes','hourly','salary','hpw'];
+  var USD = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2 });
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  function $(id){ return document.getElementById(id); }
+
+  function money(v, cents){
+    if (cents) return USD.format(v);
+    return USD.formatToParts(Math.round(v)).filter(function(p){
+      return p.type !== 'decimal' && p.type !== 'fraction';
+    }).map(function(p){ return p.value; }).join('');
+  }
+  function moneyShort(v){
+    if (v >= 1000) return '$' + (v / 1000).toFixed(1) + 'k';
+    return money(v, false);
+  }
+  function dayPhrase(d){ return d + (d === 1 ? ' day' : ' days') + ' per week'; }
+  function hrs(h){
+    var n = h < 10 ? h.toFixed(1) : Math.round(h).toLocaleString('en-US');
+    return n + ' hr';
+  }
+  function valid(v){ return typeof v === 'number' && isFinite(v) && v >= 0 ? v : null; }
+  function clone(o){ var c = {}; for (var k in o) c[k] = o[k]; c.fillups = (o.fillups || []).slice(); return c; }
+  function tripsPerDay(s){ return s.lunch === 'home' ? 4 : 2; }
+  function perGal(v){ return '$' + v.toFixed(3); }
+  function fmtDate(iso){
+    var p = iso.split('-');
+    var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1]) - 1];
+    return m + ' ' + Number(p[2]) + ', ' + p[0];
+  }
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  /* newest first: by date, then by entry order */
+  function sortedFillups(list){
+    return list.map(function(f, i){ return { f:f, i:i }; }).sort(function(a, b){
+      if (a.f.date !== b.f.date) return a.f.date < b.f.date ? 1 : -1;
+      return b.i - a.i;
+    }).map(function(x){ return x.f; });
+  }
+
+  function logStats(list){
+    if (!list.length) return null;
+    var sorted = sortedFillups(list);
+    var recent = sorted.slice(0, RECENT);
+    var rg = 0, rc = 0, tc = 0;
+    recent.forEach(function(f){ rg += f.gal; rc += f.cost; });
+    sorted.forEach(function(f){ tc += f.cost; });
+
+    var withOdo = list.filter(function(f){ return f.odo !== null; })
+      .slice().sort(function(a, b){ return a.odo - b.odo; });
+    var mi = 0, mg = 0;
+    for (var i = 1; i < withOdo.length; i++){
+      var d = withOdo[i].odo - withOdo[i - 1].odo;
+      if (d > 0){ mi += d; mg += withOdo[i].gal; }
+    }
+    return {
+      count:list.length, recentCount:recent.length,
+      price: rg > 0 ? rc / rg : null,
+      avgFill: tc / list.length, total: tc,
+      mpg: mg > 0 ? mi / mg : null, sorted:sorted
+    };
+  }
+  /* salaried pay covers all 52 weeks, paid time off included */
+  function hourlyWorth(s){
+    if (s.payMode === 'salary'){
+      var sal = valid(s.salary), h = valid(s.hpw);
+      return (sal && h) ? sal / (h * 52) : null;
+    }
+    return valid(s.hourly) || null;
+  }
+  function resolvedPrice(s, st){
+    return (s.priceMode === 'log' && st && st.price) ? st.price : s.price;
+  }
+
+  /* ---------- engine ---------- */
+  function compute(s){
+    var mpg = valid(s.mpg), price = valid(s.price);
+    if (!mpg || !price) return null;
+    var miles = valid(s.miles) || 0;
+    var weeks = valid(s.weeks) || 0;
+    var trips = tripsPerDay(s);
+    var perDay = miles * trips / mpg * price;
+
+    function tier(d){
+      var weekly = perDay * d;
+      var yearly = weekly * weeks;
+      return { days:d, daily: d > 0 ? perDay : 0, weekly:weekly, monthly: yearly / 12, yearly:yearly };
+    }
+
+    var base = tier(s.baseline);
+    var sel = tier(s.days);
+    var savings = base.yearly - sel.yearly;
+    var pct = base.yearly > 0 ? savings / base.yearly * 100 : 0;
+    var bars = [];
+    for (var d = 0; d <= s.baseline; d++) bars.push(tier(d).yearly);
+
+    var mins = valid(s.minutes) || 0;
+    var hourly = hourlyWorth(s);
+    var baseHrs = mins * trips * s.baseline * weeks / 60;
+    var selHrs = mins * trips * s.days * weeks / 60;
+    var keepHrs = baseHrs - selHrs;
+    var timeValue = hourly ? keepHrs * hourly : null;
+
+    return {
+      perDay:perDay, base:base, sel:sel, savings:savings, pct:pct,
+      y1:savings, y3:savings * 3, y5:savings * 5, bars:bars,
+      time:{ baseHrs:baseHrs, selHrs:selHrs, keepHrs:keepHrs, value:timeValue,
+             combined: timeValue === null ? null : savings + timeValue }
+    };
+  }
+
+  /* ---------- persistence ---------- */
+  function load(){
+    var s = clone(DEFAULTS), raw = null, p = null;
+    try { raw = localStorage.getItem(STORE_KEY); } catch (e) { raw = null; }
+    if (!raw) return s;
+    try { p = JSON.parse(raw); } catch (e) { return s; }
+    if (!p || typeof p !== 'object') return s;
+    NUM_KEYS.forEach(function(k){
+      if (p[k] === null) s[k] = null;
+      else if (valid(p[k]) !== null) s[k] = p[k];
+    });
+    if (Number.isInteger(p.baseline) && p.baseline >= 1 && p.baseline <= 7) s.baseline = p.baseline;
+    s.days = (Number.isInteger(p.days) && p.days >= 0) ? Math.min(p.days, s.baseline) : s.baseline;
+    if (p.lunch === 'home' || p.lunch === 'site') s.lunch = p.lunch;
+    if (p.priceMode === 'log' || p.priceMode === 'manual') s.priceMode = p.priceMode;
+    if (TABS.indexOf(p.tab) >= 0) s.tab = p.tab;
+    if (p.payMode === 'hourly' || p.payMode === 'salary') s.payMode = p.payMode;
+    if (Array.isArray(p.fillups)){
+      s.fillups = p.fillups.filter(function(f){
+        return f && typeof f.id === 'string' && typeof f.date === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(f.date) && valid(f.gal) && valid(f.cost) &&
+          (f.odo === null || valid(f.odo) !== null);
+      }).slice(-MAX_FILLUPS).map(function(f){
+        return { id:f.id, date:f.date, gal:f.gal, cost:f.cost, odo:f.odo };
+      });
+    }
+    return s;
+  }
+  function save(){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ }
+  }
+
+  var state = load();
+
+  /* ---------- DOM helpers ---------- */
+  function clear(node){ while (node.firstChild) node.removeChild(node.firstChild); }
+  function svgEl(tag, attrs){
+    var el = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function setText(id, t){ $(id).textContent = t; }
+
+  function buildSeg(){
+    var seg = $('seg');
+    clear(seg);
+    for (var i = 1; i <= 7; i++){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = String(i);
+      b.setAttribute('data-baseline', String(i));
+      b.setAttribute('aria-label', dayPhrase(i));
+      seg.appendChild(b);
+    }
+  }
+
+  function syncInputs(){
+    NUM_KEYS.forEach(function(k){ $(k).value = state[k] === null ? '' : String(state[k]); });
+  }
+
+  function drawChart(r){
+    var svg = $('chart');
+    clear(svg);
+    var n = r.bars.length, W = 480, H = 260, top = 36, bottom = 36, pad = 6;
+    var slot = (W - pad * 2) / n;
+    var bw = Math.min(slot * 0.64, 60);
+    var max = Math.max.apply(null, r.bars) || 1;
+    var plotH = H - top - bottom;
+    var short = n > 6;
+
+    svg.appendChild(svgEl('line', { x1:pad, x2:W - pad, y1:H - bottom, y2:H - bottom, 'class':'axis' }));
+
+    for (var d = 0; d < n; d++){
+      var v = r.bars[d];
+      var h = v > 0 ? Math.max(v / max * plotH, 4) : 0;
+      var x = pad + slot * d + (slot - bw) / 2;
+      var y = H - bottom - h;
+      var cls = [];
+      if (d === state.days) cls.push('sel');
+      if (d === state.baseline) cls.push('base');
+
+      var g = svgEl('g', {
+        'data-bar': String(d), role:'button', tabindex:'0',
+        'aria-label': dayPhrase(d) + ', ' + money(v, false) + ' a year',
+        'aria-pressed': d === state.days ? 'true' : 'false'
+      });
+      if (cls.length) g.setAttribute('class', cls.join(' '));
+      g.appendChild(svgEl('rect', { 'class':'hit', x:pad + slot * d, y:0, width:slot, height:H, rx:8 }));
+      if (h > 0) g.appendChild(svgEl('rect', { 'class':'brect', x:x, y:y, width:bw, height:h, rx:6 }));
+
+      var vl = svgEl('text', { 'class':'vl', x:x + bw / 2, y:y - 9 });
+      vl.textContent = short ? moneyShort(v) : money(v, false);
+      g.appendChild(vl);
+
+      var dl = svgEl('text', { 'class':'dl', x:x + bw / 2, y:H - bottom + 24 });
+      dl.textContent = String(d);
+      g.appendChild(dl);
+
+      svg.appendChild(g);
+    }
+  }
+
+  function setHeadline(parts){
+    var h = $('headline');
+    clear(h);
+    parts.forEach(function(p){
+      if (typeof p === 'string') h.appendChild(document.createTextNode(p));
+      else { var e = document.createElement(p.tag); e.textContent = p.text; h.appendChild(e); }
+    });
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    var sl = $('days');
+    sl.max = String(state.baseline);
+    if (Number(sl.value) !== state.days) sl.value = String(state.days);
+    sl.setAttribute('aria-valuetext', dayPhrase(state.days));
+    sl.style.setProperty('--fill', (state.days / state.baseline * 100) + '%');
+    setText('daysVal', String(state.days));
+    setText('daysUnit', (state.days === 1 ? 'day' : 'days') + ' per week');
+    setText('tickMax', String(state.baseline));
+
+    var btns = $('seg').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++){
+      btns[i].setAttribute('aria-pressed', Number(btns[i].getAttribute('data-baseline')) === state.baseline ? 'true' : 'false');
+    }
+
+    pressAll('[data-lunch]', 'data-lunch', state.lunch);
+    pressAll('[data-src]', 'data-src', state.priceMode);
+    pressAll('[data-pay]', 'data-pay', state.payMode);
+    var sal = state.payMode === 'salary';
+    $('payHourly').classList.toggle('hidden', sal);
+    $('paySalary').classList.toggle('hidden', !sal);
+    var hw = hourlyWorth(state);
+    $('worth').classList.toggle('hidden', hw === null);
+    if (hw !== null){
+      setText('worthVal', money(hw, true) + '/hr');
+      setText('worthHow', sal
+        ? money(state.salary, false) + ' / (' + state.hpw + ' hr x 52 wk)'
+        : 'Your hourly rate as entered');
+    }
+    setText('lunchHint', state.lunch === 'home'
+      ? 'Adds a midday round trip, so each commute day is 4 trips of ' + (valid(state.miles) || 0) + ' mi.'
+      : 'One round trip per commute day.');
+
+    var st = logStats(state.fillups);
+    renderLog(st);
+    setText('logBadge', state.fillups.length ? String(state.fillups.length) : '');
+
+    var locked = state.priceMode === 'log' && !!(st && st.price);
+    var pi = $('price');
+    if (locked) pi.value = st.price.toFixed(3);
+    else if (pi.readOnly) pi.value = state.price === null ? '' : String(state.price);
+    pi.readOnly = locked;
+    $('priceWrap').classList.toggle('locked', locked);
+    if (locked) setText('priceHint', 'Average of your last ' + st.recentCount + (st.recentCount === 1 ? ' fillup' : ' fillups'));
+    else if (state.priceMode === 'log') setText('priceHint', 'Add a fillup on the Fillups tab to use your own price.');
+    else setText('priceHint', 'Kansas average, September 2026');
+
+    var run = clone(state);
+    run.price = resolvedPrice(state, st);
+    var r = compute(run);
+    var results = $('results');
+    if (!r){
+      results.classList.add('is-empty');
+      setHeadline(['Enter your MPG and gas price to start the clock.']);
+      setText('sub', 'Both need to be above zero. Open the Setup tab to fix them.');
+      clear($('chart'));
+      return;
+    }
+    results.classList.remove('is-empty');
+    var lunchNote = state.lunch === 'home' ? ' Lunch at home doubles each day\'s miles.' : '';
+
+    if (r.savings > 0.005){
+      setHeadline(['You keep ', { tag:'em', text: money(r.savings, false) }, ' a year.']);
+      setText('sub', 'Commuting ' + state.days + ' of ' + state.baseline + ' days cuts your yearly gas by ' + Math.round(r.pct) + ' percent.' + lunchNote);
+    } else {
+      setHeadline(['Your commute burns ', { tag:'strong', text: money(r.base.yearly, false) }, ' a year.']);
+      setText('sub', 'Slide the day count or tap a bar to see what a day at home keeps.' + lunchNote);
+    }
+
+    var bl = 'At ' + state.baseline + ' days: ';
+    setText('cDaily', money(r.sel.daily, true));   setText('bDaily', bl + money(r.base.daily, true));
+    setText('cWeekly', money(r.sel.weekly, false)); setText('bWeekly', bl + money(r.base.weekly, false));
+    setText('cMonthly', money(r.sel.monthly, false)); setText('bMonthly', bl + money(r.base.monthly, false));
+    setText('cYearly', money(r.sel.yearly, false)); setText('bYearly', bl + money(r.base.yearly, false));
+
+    drawChart(r);
+
+    setText('s1', money(r.y1, false));
+    setText('s3', money(r.y3, false));
+    setText('s5', money(r.y5, false));
+
+    var t = r.time;
+    setText('tBaseLbl', 'At ' + state.baseline + (state.baseline === 1 ? ' day' : ' days'));
+    setText('tSelLbl', 'At ' + state.days + (state.days === 1 ? ' day' : ' days'));
+    setText('tBase', hrs(t.baseHrs));
+    setText('tSel', hrs(t.selHrs));
+    setText('tKeep', hrs(t.keepHrs));
+    var hasVal = t.value !== null;
+    $('tValCell').classList.toggle('hidden', !hasVal);
+    $('tComboCell').classList.toggle('hidden', !hasVal);
+    $('tHint').classList.toggle('hidden', hasVal);
+    if (hasVal){
+      setText('tVal', money(t.value, false));
+      setText('tCombo', money(t.combined, false));
+    }
+  }
+
+  function pressAll(sel, attr, val){
+    var els = document.querySelectorAll(sel);
+    for (var i = 0; i < els.length; i++) els[i].setAttribute('aria-pressed', els[i].getAttribute(attr) === val ? 'true' : 'false');
+  }
+
+  function renderLog(st){
+    var list = $('logList');
+    clear(list);
+    $('lstats').classList.toggle('hidden', !st);
+    if (!st){
+      var li = document.createElement('li');
+      li.className = 'empty';
+      li.textContent = 'No fillups yet. Add your next tank above.';
+      list.appendChild(li);
+      setText('lNote', '');
+      return;
+    }
+    setText('lPrice', st.price ? perGal(st.price) : '--');
+    setText('lFill', money(st.avgFill, true));
+    setText('lCount', String(st.count));
+    setText('lTotal', money(st.total, true));
+    $('lMpgCell').classList.toggle('hidden', st.mpg === null);
+    if (st.mpg !== null) setText('lMpg', st.mpg.toFixed(1) + ' mpg');
+    setText('lNote', 'Avg per gallon uses your last ' + st.recentCount + (st.recentCount === 1 ? ' fillup' : ' fillups') +
+      '. Logged MPG needs two fillups with odometer readings and assumes you fill to full each time.');
+
+    st.sorted.forEach(function(f){
+      var row = document.createElement('li');
+      row.className = 'logrow';
+      var info = document.createElement('div');
+      info.className = 'info';
+      var d = document.createElement('div');
+      d.className = 'd';
+      d.textContent = fmtDate(f.date);
+      var m = document.createElement('div');
+      m.className = 'm';
+      m.textContent = f.gal.toFixed(3) + ' gal at ' + perGal(f.cost / f.gal) + (f.odo !== null ? ' \u00b7 ' + Math.round(f.odo).toLocaleString('en-US') + ' mi' : '');
+      info.appendChild(d); info.appendChild(m);
+      var amt = document.createElement('span');
+      amt.className = 'amt';
+      amt.textContent = money(f.cost, true);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'delbtn';
+      del.setAttribute('data-del', f.id);
+      del.setAttribute('aria-label', 'Delete fillup from ' + fmtDate(f.date));
+      del.textContent = '\u00d7';
+      row.appendChild(info); row.appendChild(amt); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function logMsg(t, err){
+    var m = $('logMsg');
+    m.textContent = t;
+    m.classList.toggle('err', !!err);
+  }
+
+  function addFillup(){
+    var date = $('fDate').value;
+    var gal = parseFloat($('fGal').value);
+    var cost = parseFloat($('fCost').value);
+    var odoRaw = String($('fOdo').value).trim();
+    var odo = odoRaw === '' ? null : parseFloat(odoRaw);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return logMsg('Pick a date for this fillup.', true);
+    if (!(gal > 0) || !isFinite(gal)) return logMsg('Enter the gallons from your receipt.', true);
+    if (!(cost > 0) || !isFinite(cost)) return logMsg('Enter the total you paid.', true);
+    if (odo !== null && (!isFinite(odo) || odo < 0)) return logMsg('Odometer should be a positive number, or leave it blank.', true);
+    state.fillups.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date:date, gal:gal, cost:cost, odo:odo });
+    if (state.fillups.length > MAX_FILLUPS) state.fillups = state.fillups.slice(-MAX_FILLUPS);
+    $('fGal').value = ''; $('fCost').value = ''; $('fOdo').value = '';
+    logMsg('Saved: ' + gal.toFixed(3) + ' gal at ' + perGal(cost / gal) + '.', false);
+    save(); render();
+  }
+
+  function deleteFillup(id){
+    state.fillups = state.fillups.filter(function(f){ return f.id !== id; });
+    logMsg('Fillup removed.', false);
+    save(); render();
+  }
+
+  function showTab(name, focus){
+    if (TABS.indexOf(name) < 0) name = 'clock';
+    TABS.forEach(function(t){
+      var on = t === name;
+      var b = $('t-' + t);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.setAttribute('tabindex', on ? '0' : '-1');
+      $('tab-' + t).hidden = !on;
+    });
+    if (focus) $('t-' + name).focus();
+  }
+  function setTab(name, focus){
+    if (state.tab !== name){ state.tab = name; save(); window.scrollTo(0, 0); }
+    showTab(name, focus);
+  }
+
+  /* ---------- actions ---------- */
+  function setBaseline(b){
+    state.baseline = b;
+    if (state.days > b) state.days = b;
+    save(); render();
+  }
+  function setDays(d){
+    state.days = Math.max(0, Math.min(d, state.baseline));
+    save(); render();
+  }
+  function reset(){
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* storage unavailable */ }
+    var keep = state.fillups.slice();
+    state = clone(DEFAULTS);
+    state.fillups = keep;
+    state.tab = 'setup';
+    $('price').readOnly = false;
+    syncInputs(); save(); render();
+  }
+
+  document.addEventListener('input', function(e){
+    var el = e.target;
+    var key = el && el.getAttribute ? el.getAttribute('data-key') : null;
+    if (!key) return;
+    if (key === 'days'){
+      state.days = Math.max(0, Math.min(parseInt(el.value, 10) || 0, state.baseline));
+    } else {
+      var raw = String(el.value).trim();
+      var v = raw === '' ? null : parseFloat(raw);
+      state[key] = (v === null || !isFinite(v) || v < 0) ? null : v;
+    }
+    save(); render();
+  });
+
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var seg = t.closest('[data-baseline]');
+    if (seg){ setBaseline(Number(seg.getAttribute('data-baseline'))); return; }
+    var bar = t.closest('[data-bar]');
+    if (bar){ setDays(Number(bar.getAttribute('data-bar'))); return; }
+    var tb = t.closest('[data-tab]');
+    if (tb){ setTab(tb.getAttribute('data-tab'), false); return; }
+    var py = t.closest('[data-pay]');
+    if (py){ state.payMode = py.getAttribute('data-pay'); save(); render(); return; }
+    var ln = t.closest('[data-lunch]');
+    if (ln){ state.lunch = ln.getAttribute('data-lunch'); save(); render(); return; }
+    var src = t.closest('[data-src]');
+    if (src){ state.priceMode = src.getAttribute('data-src'); save(); render(); return; }
+    var del = t.closest('[data-del]');
+    if (del){ deleteFillup(del.getAttribute('data-del')); return; }
+    if (t.closest('#useMpg')){
+      var st = logStats(state.fillups);
+      if (st && st.mpg){ state.mpg = Math.round(st.mpg * 10) / 10; $('mpg').value = String(state.mpg); save(); render(); }
+      return;
+    }
+    if (t.closest('#reset')) reset();
+  });
+
+  document.addEventListener('submit', function(e){
+    if (e.target && e.target.id === 'logForm'){ e.preventDefault(); addFillup(); }
+  });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && t.getAttribute && t.getAttribute('role') === 'tab'){
+      var i = TABS.indexOf(t.getAttribute('data-tab')), n = -1;
+      if (e.key === 'ArrowRight') n = (i + 1) % TABS.length;
+      else if (e.key === 'ArrowLeft') n = (i + TABS.length - 1) % TABS.length;
+      else if (e.key === 'Home') n = 0;
+      else if (e.key === 'End') n = TABS.length - 1;
+      if (n >= 0){ e.preventDefault(); setTab(TABS[n], true); }
+      return;
+    }
+    if (!t || !t.getAttribute || t.getAttribute('data-bar') === null) return;
+    if (e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      var d = Number(t.getAttribute('data-bar'));
+      setDays(d);
+      var again = $('chart').querySelector('[data-bar="' + d + '"]');
+      if (again) again.focus();
+    }
+  });
+
+  function init(){
+    buildSeg();
+    syncInputs();
+    $('fDate').value = todayISO();
+    showTab(state.tab, false);
+    render();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.__cc = { compute: compute, logStats: logStats };
+})();
+</script>
+</body>
+</html>
